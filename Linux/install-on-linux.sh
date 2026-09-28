@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+echo "=== Media Merge Linux Installer (LMDE / EndeavourOS) ===";
+
+# 1. Check and install dependencies (ffmpeg and zenity)
+MISSING_DEPS=();
+if ! command -v ffmpeg >/dev/null 2>&1; then
+    MISSING_DEPS+=("ffmpeg");
+fi;
+if ! command -v zenity >/dev/null 2>&1; then
+    MISSING_DEPS+=("zenity");
+fi;
+
+if [[ ${#MISSING_DEPS[@]} -gt 0 ]]; then
+    echo "Installing missing dependencies: ${MISSING_DEPS[*]}";
+    if command -v apt >/dev/null 2>&1; then
+        sudo apt update && sudo apt install -y "${MISSING_DEPS[@]}";
+    elif command -v pacman >/dev/null 2>&1; then
+        sudo pacman -S --needed --noconfirm "${MISSING_DEPS[@]}";
+    else
+        echo "Please install ${MISSING_DEPS[*]} manually using your package manager.";
+        exit 1;
+    fi;
+fi;
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+SOURCE_SCRIPT="${SCRIPT_DIR}/media-merge.sh";
+
+if [[ ! -f "${SOURCE_SCRIPT}" ]]; then
+    echo "Error: media-merge.sh must be in the same directory as install-linux.sh.";
+    exit 1;
+fi;
+
+# 2. Prompt for script installation directory
+DEFAULT_BIN_DIR="${HOME}/.local/bin";
+mkdir -p "${DEFAULT_BIN_DIR}";
+
+zenity --info --title="Media Merge Installer" --width=380 \
+    --text="Select the directory where you want to store the Media Merge script (Default: ~/.local/bin).";
+
+INSTALL_DIR=$(zenity --file-selection --directory --title="Select Script Storage Location" --filename="${DEFAULT_BIN_DIR}/");
+if [[ -z ($INSTALL_DIR) ]]; then
+    echo "Installation canceled.";
+    exit 0;
+fi;
+
+mkdir -p "${INSTALL_DIR}";
+TARGET_SCRIPT="${INSTALL_DIR}/media-merge";
+
+cp "${SOURCE_SCRIPT}" "${TARGET_SCRIPT}";
+chmod +x "${TARGET_SCRIPT}";
+
+# 3. Create Desktop Application Entry
+APP_DIR="${HOME}/.local/share/applications";
+mkdir -p "${APP_DIR}";
+DESKTOP_FILE="${APP_DIR}/media-merge.desktop";
+
+cat <<EOF > "${DESKTOP_FILE}"
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Media Merge
+Comment=Join Video and Audio Streams Losslessly with FFmpeg
+Exec="${TARGET_SCRIPT}"
+Icon=applications-multimedia
+Terminal=true
+Categories=AudioVideo;Video;AudioVideoEditing;
+EOF
+
+chmod +x "${DESKTOP_FILE}";
+
+echo "Installed script to: ${TARGET_SCRIPT}";
+echo "Created desktop launcher at: ${DESKTOP_FILE}";
+echo "Running initial folder setup...";
+
+"${TARGET_SCRIPT}" --reset;

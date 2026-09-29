@@ -9,32 +9,43 @@ fi;
 
 run_initial_setup() {
     mkdir -p "${CONFIG_DIR}";
-    local start_dir="${DEFAULT_INPUT_DIR:-${HOME}}";
+    local start_dir="${DEFAULT_VIDEO_DIR:-${HOME}}";
 
     zenity --info --title="Media Merge Setup" --width=380 \
-        --text="Please select your Default Download / Media Input folder.";
+        --text="Please select your Default Video Input folder.";
 
-    local new_input;
-    new_input=$(zenity --file-selection --directory --title="Select Default Download / Input Folder" --filename="${start_dir}/");
-    if [[ -z ($new_input) ]]; then
+    local new_video;
+    new_video=$(zenity --file-selection --directory --title="Select Default Video Input Folder" --filename="${start_dir}/");
+    if [[ -z ($new_video) ]]; then
         exit 1;
     fi;
 
     zenity --info --title="Media Merge Setup" --width=380 \
-        --text="Now select your Default Output Storage folder for merged files.";
+        --text="Next, select your Default Audio Input folder.";
 
-    local new_output;
-    new_output=$(zenity --file-selection --directory --title="Select Default Output Storage Folder" --filename="${new_input}/");
-    if [[ -z ($new_output) ]]; then
-        new_output="${new_input}";
+    local new_audio;
+    new_audio=$(zenity --file-selection --directory --title="Select Default Audio Input Folder" --filename="${new_video}/");
+    if [[ -z ($new_audio) ]]; then
+        new_audio="${new_video}";
     fi;
 
-    DEFAULT_INPUT_DIR="${new_input}";
+    zenity --info --title="Media Merge Setup" --width=380 \
+        --text="Finally, select your Default Output Storage folder for merged files.";
+
+    local new_output;
+    new_output=$(zenity --file-selection --directory --title="Select Default Output Storage Folder" --filename="${new_video}/");
+    if [[ -z ($new_output) ]]; then
+        new_output="${new_video}";
+    fi;
+
+    DEFAULT_VIDEO_DIR="${new_video}";
+    DEFAULT_AUDIO_DIR="${new_audio}";
     DEFAULT_OUTPUT_DIR="${new_output}";
     DO_NOT_ASK_AGAIN="false";
 
     cat <<EOF > "${CONFIG_FILE}"
-DEFAULT_INPUT_DIR="${DEFAULT_INPUT_DIR}"
+DEFAULT_VIDEO_DIR="${DEFAULT_VIDEO_DIR}"
+DEFAULT_AUDIO_DIR="${DEFAULT_AUDIO_DIR}"
 DEFAULT_OUTPUT_DIR="${DEFAULT_OUTPUT_DIR}"
 DO_NOT_ASK_AGAIN="${DO_NOT_ASK_AGAIN}"
 EOF
@@ -42,6 +53,10 @@ EOF
 
 if [[ -f "${CONFIG_FILE}" ]]; then
     source "${CONFIG_FILE}";
+    # Handle migration from older config versions seamlessly
+    if [[ -z "${DEFAULT_VIDEO_DIR}" ]]; then
+        run_initial_setup;
+    fi;
 else
     run_initial_setup;
 fi;
@@ -49,8 +64,8 @@ fi;
 if [[ ($DO_NOT_ASK_AGAIN) != "true" ]]; then
     choice=$(zenity --question \
         --title="Media Merge - Default Settings" \
-        --width=440 \
-        --text="<b>Current Default Input Folder:</b>\n${DEFAULT_INPUT_DIR}\n\n<b>Current Default Output Folder:</b>\n${DEFAULT_OUTPUT_DIR}\n\nWould you like to change these defaults?" \
+        --width=460 \
+        --text="<b>Current Video Folder:</b>\n${DEFAULT_VIDEO_DIR}\n\n<b>Current Audio Folder:</b>\n${DEFAULT_AUDIO_DIR}\n\n<b>Current Output Folder:</b>\n${DEFAULT_OUTPUT_DIR}\n\nWould you like to change these defaults?" \
         --ok-label="Keep Current" \
         --cancel-label="Change Defaults" \
         --extra-button="Do Not Ask Again");
@@ -59,7 +74,8 @@ if [[ ($DO_NOT_ASK_AGAIN) != "true" ]]; then
     if [[ ($choice) == "Do Not Ask Again" ]]; then
         DO_NOT_ASK_AGAIN="true";
         cat <<EOF > "${CONFIG_FILE}"
-DEFAULT_INPUT_DIR="${DEFAULT_INPUT_DIR}"
+DEFAULT_VIDEO_DIR="${DEFAULT_VIDEO_DIR}"
+DEFAULT_AUDIO_DIR="${DEFAULT_AUDIO_DIR}"
 DEFAULT_OUTPUT_DIR="${DEFAULT_OUTPUT_DIR}"
 DO_NOT_ASK_AGAIN="${DO_NOT_ASK_AGAIN}"
 EOF
@@ -70,7 +86,7 @@ fi;
 
 VIDEO_FILE=$(zenity --file-selection \
     --title="Select Video File" \
-    --filename="${DEFAULT_INPUT_DIR}/" \
+    --filename="${DEFAULT_VIDEO_DIR}/" \
     --file-filter="Supported Video Files | *.mp4 *.mkv *.avi *.mov *.wmv *.flv *.webm *.ts *.mts *.m2ts *.vob *.ogv *.m4v *.mpg *.mpeg *.m2v *.3gp" \
     --file-filter="All Files | *");
 
@@ -80,7 +96,7 @@ fi;
 
 AUDIO_FILE=$(zenity --file-selection \
     --title="Select Audio File" \
-    --filename="${DEFAULT_INPUT_DIR}/" \
+    --filename="${DEFAULT_AUDIO_DIR}/" \
     --file-filter="Supported Audio Files | *.ts *.mp3 *.aac *.m4a *.wav *.flac *.ogg *.opus *.wma *.ac3 *.eac3 *.dts *.aiff *.alac *.mka" \
     --file-filter="All Files | *");
 

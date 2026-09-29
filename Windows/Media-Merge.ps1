@@ -34,10 +34,10 @@ function Get-FileName($Title, $Filter, $StartFolder) {
     return ($null);
 };
 
-function Show-StartupChoiceDialog($CurrentInputDir, $CurrentOutputDir) {
+function Show-StartupChoiceDialog($CurrentVideoDir, $CurrentAudioDir, $CurrentOutputDir) {
     $form = New-Object System.Windows.Forms.Form;
     $form.Text = "Media Merge - Default Settings";
-    $form.Size = New-Object System.Drawing.Size(480, 230);
+    $form.Size = New-Object System.Drawing.Size(480, 275);
     $form.StartPosition = "CenterScreen";
     $form.FormBorderStyle = "FixedDialog";
     $form.MaximizeBox = ($false);
@@ -45,26 +45,26 @@ function Show-StartupChoiceDialog($CurrentInputDir, $CurrentOutputDir) {
 
     $label = New-Object System.Windows.Forms.Label;
     $label.Location = New-Object System.Drawing.Point(20, 20);
-    $label.Size = New-Object System.Drawing.Size(430, 95);
-    $label.Text = "Current Default Media Folder:`r`n" + ($CurrentInputDir) + "`r`n`r`nCurrent Default Output Folder:`r`n" + ($CurrentOutputDir) + "`r`n`r`nWould you like to change these defaults?";
+    $label.Size = New-Object System.Drawing.Size(430, 140);
+    $label.Text = "Default Video Folder:`r`n" + ($CurrentVideoDir) + "`r`n`r`nDefault Audio Folder:`r`n" + ($CurrentAudioDir) + "`r`n`r`nDefault Output Folder:`r`n" + ($CurrentOutputDir) + "`r`n`r`nWould you like to change these defaults?";
     $form.Controls.Add(($label));
 
     $btnChange = New-Object System.Windows.Forms.Button;
-    $btnChange.Location = New-Object System.Drawing.Point(20, 135);
+    $btnChange.Location = New-Object System.Drawing.Point(20, 175);
     $btnChange.Size = New-Object System.Drawing.Size(130, 35);
     $btnChange.Text = "Change Defaults";
     $btnChange.DialogResult = [System.Windows.Forms.DialogResult]::Yes;
     $form.Controls.Add(($btnChange));
 
     $btnKeep = New-Object System.Windows.Forms.Button;
-    $btnKeep.Location = New-Object System.Drawing.Point(165, 135);
+    $btnKeep.Location = New-Object System.Drawing.Point(165, 175);
     $btnKeep.Size = New-Object System.Drawing.Size(130, 35);
     $btnKeep.Text = "Keep Current";
     $btnKeep.DialogResult = [System.Windows.Forms.DialogResult]::No;
     $form.Controls.Add(($btnKeep));
 
     $btnNever = New-Object System.Windows.Forms.Button;
-    $btnNever.Location = New-Object System.Drawing.Point(310, 135);
+    $btnNever.Location = New-Object System.Drawing.Point(310, 175);
     $btnNever.Size = New-Object System.Drawing.Size(140, 35);
     $btnNever.Text = "Do Not Ask Again";
     $btnNever.DialogResult = [System.Windows.Forms.DialogResult]::Ignore;
@@ -79,16 +79,23 @@ function Set-Configuration($ExistingConfig) {
         New-Item -ItemType Directory -Path ($configDir) -Force | Out-Null;
     };
 
-    $startInput = if ($ExistingConfig) { ($ExistingConfig.DefaultInputDir) } else { ($env:USERPROFILE) };
-    $inputDir = Select-FolderDialog "Select Default Download / Media Input Folder" ($startInput);
-    if (-not ($inputDir)) {
+    $startVideo = if ($ExistingConfig) { ($ExistingConfig.DefaultVideoDir) } else { ($env:USERPROFILE) };
+    $videoDir = Select-FolderDialog "Select Default Video Input Folder" ($startVideo);
+    if (-not ($videoDir)) {
         Write-Host "Setup canceled. Exiting." -ForegroundColor Yellow;
         exit 1;
     };
 
-    $outputDir = Select-FolderDialog "Select Default Output Storage Folder for Merged Media" ($inputDir);
+    $startAudio = if ($ExistingConfig) { ($ExistingConfig.DefaultAudioDir) } else { ($videoDir) };
+    $audioDir = Select-FolderDialog "Select Default Audio Input Folder" ($startAudio);
+    if (-not ($audioDir)) {
+        $audioDir = ($videoDir);
+    };
+
+    $startOutput = if ($ExistingConfig) { ($ExistingConfig.DefaultOutputDir) } else { ($videoDir) };
+    $outputDir = Select-FolderDialog "Select Default Output Storage Folder for Merged Media" ($startOutput);
     if (-not ($outputDir)) {
-        $outputDir = ($inputDir);
+        $outputDir = ($videoDir);
     };
 
     $ffmpegPath = "ffmpeg.exe";
@@ -112,7 +119,8 @@ function Set-Configuration($ExistingConfig) {
     };
 
     $newConfig = [PSCustomObject]@{
-        DefaultInputDir  = ($inputDir);
+        DefaultVideoDir  = ($videoDir);
+        DefaultAudioDir  = ($audioDir);
         DefaultOutputDir = ($outputDir);
         FFmpegPath       = ($ffmpegPath);
         DoNotAskAgain    = ($false);
@@ -127,6 +135,8 @@ $config = ($null);
 if ((Test-Path -Path ($configFile)) -and (-not ($Reset))) {
     try {
         $config = Get-Content -Path ($configFile) -Raw | ConvertFrom-Json;
+        # Handle migration from older config versions seamlessly
+        if (-not ($config.DefaultVideoDir)) { $config = ($null); };
     } catch {
         $config = ($null);
     };
@@ -136,7 +146,7 @@ if (-not ($config)) {
     [System.Windows.Forms.MessageBox]::Show("Welcome to Media Merge! Let's configure your default folders.", "First Run Setup", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null;
     $config = Set-Configuration ($null);
 } elseif (-not ($config.DoNotAskAgain)) {
-    $choice = Show-StartupChoiceDialog ($config.DefaultInputDir) ($config.DefaultOutputDir);
+    $choice = Show-StartupChoiceDialog ($config.DefaultVideoDir) ($config.DefaultAudioDir) ($config.DefaultOutputDir);
     if ($choice -eq ([System.Windows.Forms.DialogResult]::Yes)) {
         $config = Set-Configuration ($config);
     } elseif ($choice -eq ([System.Windows.Forms.DialogResult]::Ignore)) {
@@ -145,18 +155,19 @@ if (-not ($config)) {
     };
 };
 
-$defaultDir = ($config.DefaultInputDir);
-$outputDir  = ($config.DefaultOutputDir);
-$ffmpeg     = ($config.FFmpegPath);
+$videoDir  = ($config.DefaultVideoDir);
+$audioDir  = ($config.DefaultAudioDir);
+$outputDir = ($config.DefaultOutputDir);
+$ffmpeg    = ($config.FFmpegPath);
 
 $videoFilter = "Supported Video Files|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.flv;*.webm;*.ts;*.mts;*.m2ts;*.vob;*.ogv;*.m4v;*.mpg;*.mpeg;*.m2v;*.3gp|All Files (*.*)|*.*";
 Write-Host "Please select the Video file...";
-$videoFile = Get-FileName "Select Video File" ($videoFilter) ($defaultDir);
+$videoFile = Get-FileName "Select Video File" ($videoFilter) ($videoDir);
 if (-not ($videoFile)) { Write-Host "No video selected. Exiting."; exit 0; };
 
 $audioFilter = "Supported Audio Files|*.ts;*.mp3;*.aac;*.m4a;*.wav;*.flac;*.ogg;*.opus;*.wma;*.ac3;*.eac3;*.dts;*.aiff;*.alac;*.mka|All Files (*.*)|*.*";
 Write-Host "Please select the Audio file...";
-$audioFile = Get-FileName "Select Audio File" ($audioFilter) ($defaultDir);
+$audioFile = Get-FileName "Select Audio File" ($audioFilter) ($audioDir);
 if (-not ($audioFile)) { Write-Host "No audio selected. Exiting."; exit 0; };
 
 if (-not (Test-Path -Path ($outputDir))) {

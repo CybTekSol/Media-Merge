@@ -2,13 +2,13 @@
 
 echo "=== Media Merge Linux Installer (LMDE / EndeavourOS) ===";
 
-# 1. Check and install dependencies (ffmpeg and zenity)
+# 1. Check and install dependencies (ffmpeg and yad)
 MISSING_DEPS=();
 if ! command -v ffmpeg >/dev/null 2>&1; then
     MISSING_DEPS+=("ffmpeg");
 fi;
-if ! command -v zenity >/dev/null 2>&1; then
-    MISSING_DEPS+=("zenity");
+if ! command -v yad >/dev/null 2>&1; then
+    MISSING_DEPS+=("yad");
 fi;
 
 if [[ ${#MISSING_DEPS[@]} -gt 0 ]]; then
@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 SOURCE_SCRIPT="${SCRIPT_DIR}/media-merge.sh";
 
 if [[ ! -f "${SOURCE_SCRIPT}" ]]; then
-    echo "Error: media-merge.sh must be in the same directory as install-linux.sh.";
+    echo "Error: media-merge.sh must be in the same directory as install-on-linux.sh.";
     exit 1;
 fi;
 
@@ -35,11 +35,13 @@ fi;
 DEFAULT_BIN_DIR="${HOME}/.local/bin";
 mkdir -p "${DEFAULT_BIN_DIR}";
 
-zenity --info --title="Media Merge Installer" --width=380 \
+yad --info --title="Media Merge Installer" --width=380 \
     --text="Select the directory where you want to store the Media Merge script (Default: ~/.local/bin).";
 
-INSTALL_DIR=$(zenity --file-selection --directory --title="Select Script Storage Location" --filename="${DEFAULT_BIN_DIR}/");
-if [[ -z ($INSTALL_DIR) ]]; then
+INSTALL_DIR=$(yad --file-selection --directory --title="Select Script Storage Location" --filename="${DEFAULT_BIN_DIR}/");
+INSTALL_DIR="${INSTALL_DIR%|}"; # Strip yad trailing pipe
+
+if [[ -z "${INSTALL_DIR}" ]]; then
     echo "Installation canceled.";
     exit 0;
 fi;

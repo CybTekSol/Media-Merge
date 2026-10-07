@@ -1,0 +1,70 @@
+# OS Generated Files
+Thumbs.db
+ehthumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor / IDE Files
+*.sublime-workspace
+*.sublime-project
+.vscode/
+.idea/
+
+# Accidental Configurations
+config.json
+config.conf
+
+# Media / Test Files (Prevent accidental commit of massive video/audio files)
+*.mp4
+*.mkv
+*.ts
+*.m4a
+*.mp3
+*.aac
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mts
+*.m2ts
+*.vob
+*.ogv
+*.mpg
+*.mpeg
+*.m2v
+*.3gp
+*.wav
+*.flac
+*.ogg
+*.opus
+*.wma
+*.ac3
+*.eac3
+*.dts
+*.aiff
+*.alac
+*.mka
+
+# Specific Temporary Output Files from the script
+*_merged.*
+temp_audio_converted.*
+
+# Editor/IDE Specific Files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Vim / Terminal IDE Swap Files
+*.swp
+*.swo
+*.swn
+*.swm
+*.swl
+*.swx

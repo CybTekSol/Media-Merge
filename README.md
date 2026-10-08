@@ -2,6 +2,11 @@
 
 A lightweight, cross-platform utility for **Windows** and **Linux** that losslessly merges separate video and audio files (such as `.mp4` video and `.ts` audio streams) using **FFmpeg** with native graphical file dialogs.
 
+Developed and maintained by **CybTekSol [ https://github.com/CybTekSol ]**.
+
+**DISCLAIMER:**  
+This application is provided free of charge, **AS-IS**, no warranties or guarantees (expressed or implied)... use is at your own risk and is licensed as stated in the README.md located in this repository.
+
 ---
 
 ## Features

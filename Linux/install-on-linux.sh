@@ -64,7 +64,7 @@ Type=Application
 Name=Media Merge
 Comment=Join Video and Audio Streams Losslessly with FFmpeg
 Exec="${TARGET_SCRIPT}"
-Icon=applications-multimedia
+Icon="${INSTALL_DIR}/media-merge.png"
 Terminal=true
 Categories=AudioVideo;Video;AudioVideoEditing;
 EOF
